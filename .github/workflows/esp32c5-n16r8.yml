@@ -1,0 +1,42 @@
+name: Tasmota ESP32-C5 N16R8
+
+on:
+  push:
+    branches: [build/esp32c5-n16r8]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Install Tasmota build tools
+        run: |
+          python -m pip install pioarduino==6.2.0.post1
+          cp platformio_override_sample.ini platformio_override.ini
+      - name: Build SafeBoot and firmware
+        run: |
+          pio run -e tasmota32c5-n16r8-safeboot
+          pio run -e tasmota32c5-n16r8
+      - name: Package flash images
+        run: |
+          mkdir -p dist
+          for suffix in bin factory.bin; do
+            image="tasmota32c5-n16r8.$suffix"
+            test -s ".pio/build/tasmota32c5-n16r8/$image"
+            cp ".pio/build/tasmota32c5-n16r8/$image" dist/
+          done
+          cd dist
+          sha256sum *.bin > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tasmota32c5-n16r8
+          path: dist/
+          if-no-files-found: error
