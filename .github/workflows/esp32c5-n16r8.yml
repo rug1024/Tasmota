@@ -30,8 +30,8 @@ jobs:
           mkdir -p dist
           for suffix in bin factory.bin; do
             image="tasmota32c5-n16r8.$suffix"
-            test -s ".pio/build/tasmota32c5-n16r8/$image"
-            cp ".pio/build/tasmota32c5-n16r8/$image" dist/
+            test -s "build_output/firmware/$image"
+            cp "build_output/firmware/$image" dist/
           done
           cd dist
           sha256sum *.bin > SHA256SUMS.txt
