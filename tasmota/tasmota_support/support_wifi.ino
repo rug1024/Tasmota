@@ -21,6 +21,10 @@
  * Wifi
 \*********************************************************************************************/
 
+#if CONFIG_IDF_TARGET_ESP32C5
+#include <esp_wifi.h>
+#endif
+
 // Enable one of three below options for wifi re-connection debugging
 //#define WIFI_FORCE_RF_CAL_ERASE            // Erase rf calibration sector on restart only
 //#define WIFI_RF_MODE_RF_CAL                // Set RF_MODE to RF_CAL for restart and deepsleep during user_rf_pre_init
@@ -229,6 +233,11 @@ void WifiConfig(uint8_t type)
     }
 #ifdef USE_WEBSERVER
     else if (WIFI_MANAGER == Wifi.config_type || WIFI_MANAGER_RESET_ONLY == Wifi.config_type) {
+#if CONFIG_IDF_TARGET_ESP32C5
+      if (5 == Settings->wifi_band) {
+        esp_wifi_set_band_mode(WIFI_BAND_MODE_AUTO);  // Allow the recovery AP on 2.4 GHz
+      }
+#endif
       WifiManagerBegin(WIFI_MANAGER_RESET_ONLY == Wifi.config_type);
     }
 #endif  // USE_WEBSERVER
@@ -393,8 +402,22 @@ void WifiBegin(uint8_t flag, uint8_t channel) {
 
   WiFiSetSleepMode();
   WifiSetOutputPower();
+#if CONFIG_IDF_TARGET_ESP32C5
+  if (5 == Settings->wifi_band) {
+    const esp_err_t result = esp_wifi_set_band_mode(WIFI_BAND_MODE_5G_ONLY);
+    if (ESP_OK != result) {
+      AddLog(LOG_LEVEL_ERROR, PSTR(D_LOG_WIFI "Cannot select 5 GHz: %s"), esp_err_to_name(result));
+      return;
+    }
+    if (channel <= 14) {
+      channel = 0;  // Ignore a cached channel from the other band
+    }
+  } else
+#endif
 #ifdef ESP32
-  WiFiHelper::setPhyMode(WiFiPhyMode_t((Wifi.phy_mode > 0) ? Wifi.phy_mode : 4));  // 1-B/2-BG/3-BGN/4-BGNAX
+  {
+    WiFiHelper::setPhyMode(WiFiPhyMode_t((Wifi.phy_mode > 0) ? Wifi.phy_mode : 4));  // 1-B/2-BG/3-BGN/4-BGNAX
+  }
 #endif  // ESP32
   WiFi.setAutoReconnect(true);
   switch (flag) {
@@ -548,6 +571,12 @@ void WifiBeginAfterScan(void)
         bool hidden_scan;
 
         WiFiHelper::getNetworkInfo(i, ssid_scan, sec_scan, rssi_scan, bssid_scan, chan_scan, hidden_scan);
+
+#if CONFIG_IDF_TARGET_ESP32C5
+        if ((5 == Settings->wifi_band) && (chan_scan <= 14)) {
+          continue;
+        }
+#endif
 
         bool known = false;
         uint32_t j;

@@ -35,7 +35,10 @@ const char kTasmotaCommands[] PROGMEM = "|"  // No prefix
   D_CMND_TIME "|" D_CMND_TIMEZONE "|" D_CMND_TIMESTD "|" D_CMND_TIMEDST "|" D_CMND_ALTITUDE "|"
   D_CMND_LEDPOWER "|" D_CMND_LEDSTATE "|" D_CMND_LEDMASK "|" D_CMND_LEDPWM_ON "|" D_CMND_LEDPWM_OFF "|" D_CMND_LEDPWM_MODE "|"
   D_CMND_WIFIPOWER "|" D_CMND_TEMPOFFSET "|" D_CMND_HUMOFFSET "|" D_CMND_SPEEDUNIT "|" D_CMND_GLOBAL_TEMP "|" D_CMND_GLOBAL_HUM"|" D_CMND_GLOBAL_PRESS "|" D_CMND_SWITCHTEXT "|"
-  D_CMND_WIFISCAN "|" D_CMND_WIFITEST "|" D_CMND_ZIGBEE_BATTPERCENT "|" 
+  D_CMND_WIFISCAN "|" D_CMND_WIFITEST "|" D_CMND_ZIGBEE_BATTPERCENT "|"
+#if CONFIG_IDF_TARGET_ESP32C5
+  "WifiBand|"
+#endif
 
 #ifdef USE_I2C
   D_CMND_I2CSCAN "|" D_CMND_I2CDRIVER "|"
@@ -88,6 +91,9 @@ void (* const TasmotaCommand[])(void) PROGMEM = {
   &CmndLedPower, &CmndLedState, &CmndLedMask, &CmndLedPwmOn, &CmndLedPwmOff, &CmndLedPwmMode,
   &CmndWifiPower, &CmndTempOffset, &CmndHumOffset, &CmndSpeedUnit, &CmndGlobalTemp, &CmndGlobalHum, &CmndGlobalPress, &CmndSwitchText,
   &CmndWifiScan, &CmndWifiTest, &CmndBatteryPercent,
+#if CONFIG_IDF_TARGET_ESP32C5
+  &CmndWifiBand,
+#endif
 
 #ifdef USE_I2C
   &CmndI2cScan, &CmndI2cDriver,
@@ -2552,6 +2558,18 @@ void CmndHostname(void)
   }
   ResponseCmndChar(SettingsText(SET_HOSTNAME));
 }
+
+#if CONFIG_IDF_TARGET_ESP32C5
+void CmndWifiBand(void) {
+  const int32_t band = XdrvMailbox.payload;
+  if (((0 == band) || (5 == band)) && (Settings->wifi_band != band)) {
+    Settings->wifi_band = band;
+    Settings->wifi_channel = 0;  // Discard the cached channel and BSSID
+    TasmotaGlobal.restart_flag = 2;
+  }
+  ResponseCmndNumber((5 == Settings->wifi_band) ? 5 : 0);
+}
+#endif
 
 void CmndWifiConfig(void)
 {

@@ -854,7 +854,8 @@ typedef struct {
   uint8_t       ws_color[4][3];            // EB0
   uint8_t       free_esp32s31_ebc[8];      // EBC
 #else
-  uint8_t       free_eb0[20];              // EB0  20 bytes
+  uint8_t       wifi_band;                 // EB0  C5: 0 = automatic, 5 = 5 GHz only
+  uint8_t       free_eb1[19];               // EB1  19 bytes
 #endif
 
   uint16_t      light_pixels_height_1 : 15;// EC4  Pixels height minus 1, default 0 (0 means 1 line)
