@@ -1,0 +1,41 @@
+name: ESP32-S3 INMP441 microphone
+on:
+  push:
+    branches: [build/esp32s3-inmp441]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Prepare Tasmota
+        run: |
+          python -m pip install pioarduino
+          cp platformio_override_sample.ini platformio_override.ini
+          git apply tools/inmp441-mic-only.patch
+      - name: Build SafeBoot and microphone firmware
+        run: |
+          pio run -e tasmota32s3-safeboot
+          pio run -e tasmota32s3-inmp441
+      - name: Package firmware
+        run: |
+          mkdir -p dist
+          cp build_output/firmware/tasmota32s3-inmp441.bin dist/
+          cp build_output/firmware/tasmota32s3-inmp441.factory.bin dist/
+          cp platformio_tasmota_cenv.ini dist/
+          cp tools/inmp441-mic-only.patch dist/
+          python -m pip freeze > dist/build-tools.txt
+          git rev-parse HEAD > dist/source-commit.txt
+          cd dist
+          sha256sum *.bin > SHA256SUMS.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: tasmota32s3-inmp441
+          path: dist/
+          if-no-files-found: error
