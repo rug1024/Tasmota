@@ -67,10 +67,39 @@ index 8fe9282..41dafee 100644
   * Commands
  \*********************************************************************************************/
 diff --git a/tasmota/tasmota_xdrv_driver/xdrv_42_1_i2s_mp3mic_idf51.ino b/tasmota/tasmota_xdrv_driver/xdrv_42_1_i2s_mp3mic_idf51.ino
-index b7354fe..aa810ba 100644
+index b7354fe..a8c2051 100644
 --- a/tasmota/tasmota_xdrv_driver/xdrv_42_1_i2s_mp3mic_idf51.ino
 +++ b/tasmota/tasmota_xdrv_driver/xdrv_42_1_i2s_mp3mic_idf51.ino
-@@ -420,11 +420,13 @@ int32_t I2sRecord(char *path, uint32_t encoder_type) {
+@@ -254,6 +254,11 @@ void I2sMicTask(void *arg){
+   uint16_t bwritten;
+   uint32_t ctime;
+   uint32_t gain = audio_i2s.Settings->rx.gain;
++  // Drain microphone startup samples while sending silence, then fade in.
++  const uint32_t samples_per_second = audio_i2s.Settings->rx.sample_rate * audio_i2s.Settings->rx.channels;
++  const uint32_t mute_samples = samples_per_second * 300 / 1000;
++  const uint32_t fade_samples = samples_per_second * 100 / 1000;
++  uint32_t startup_sample = 0;
+   uint32_t timeForOneRead;
+   uint32_t __enctime;
+   TickType_t xLastWakeTime;
+@@ -334,6 +339,16 @@ void I2sMicTask(void *arg){
+         mic_enc->inBuffer[cnt] *= _gain;
+       }
+     }
++    if (startup_sample < mute_samples + fade_samples) {
++      for (size_t i = 0; i < bytes_read / sizeof(int16_t) && startup_sample < mute_samples + fade_samples; i++, startup_sample++) {
++        if (startup_sample < mute_samples) {
++          mic_enc->inBuffer[i] = 0;
++        } else {
++          const int32_t sample = mic_enc->inBuffer[i];
++          mic_enc->inBuffer[i] = sample * (int32_t)(startup_sample - mute_samples) / (int32_t)fade_samples;
++        }
++      }
++    }
+     __enctime = millis();
+     if(bytes_read != 0){
+       written = mic_enc->encode(bytes_read >> 1); //transmit samples, written is an error code
+@@ -420,11 +435,13 @@ int32_t I2sRecord(char *path, uint32_t encoder_type) {
    }
    audio_i2s_mp3.encoder_type = encoder_type;
  
