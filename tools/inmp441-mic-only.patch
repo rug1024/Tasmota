@@ -1,5 +1,5 @@
 diff --git a/tasmota/tasmota_xdrv_driver/xdrv_42_0_i2s_audio_idf51.ino b/tasmota/tasmota_xdrv_driver/xdrv_42_0_i2s_audio_idf51.ino
-index 8fe9282..cad8c44 100644
+index 8fe9282..41dafee 100644
 --- a/tasmota/tasmota_xdrv_driver/xdrv_42_0_i2s_audio_idf51.ino
 +++ b/tasmota/tasmota_xdrv_driver/xdrv_42_0_i2s_audio_idf51.ino
 @@ -41,12 +41,14 @@
@@ -33,7 +33,23 @@ index 8fe9282..cad8c44 100644
  }
  #endif  // USE_WEBSERVER
  
-@@ -854,14 +858,14 @@ void mp3_delete(void) {
+@@ -740,6 +744,7 @@ void I2sMp3WrTask(void *arg){
+ void I2sStopPlaying() {
+   I2SAudioPower(false);
+ 
++#ifdef USE_I2S_MP3
+   if(audio_i2s_mp3.task_running){
+     audio_i2s_mp3.task_running = false;
+     while(audio_i2s_mp3.task_has_ended == false){
+@@ -749,6 +754,7 @@ void I2sStopPlaying() {
+       delay(10);
+     }
+   }
++#endif // USE_I2S_MP3
+   if (audio_i2s_mp3.mic_task_handle) {
+     audio_i2s_mp3.mic_stop = 1;
+     while (audio_i2s_mp3.mic_stop) {
+@@ -854,14 +860,14 @@ void mp3_delete(void) {
    audio_i2s_mp3.decoder = nullptr;
  }
  
@@ -50,3 +66,21 @@ index 8fe9282..cad8c44 100644
  /*********************************************************************************************\
   * Commands
  \*********************************************************************************************/
+diff --git a/tasmota/tasmota_xdrv_driver/xdrv_42_1_i2s_mp3mic_idf51.ino b/tasmota/tasmota_xdrv_driver/xdrv_42_1_i2s_mp3mic_idf51.ino
+index b7354fe..aa810ba 100644
+--- a/tasmota/tasmota_xdrv_driver/xdrv_42_1_i2s_mp3mic_idf51.ino
++++ b/tasmota/tasmota_xdrv_driver/xdrv_42_1_i2s_mp3mic_idf51.ino
+@@ -420,11 +420,13 @@ int32_t I2sRecord(char *path, uint32_t encoder_type) {
+   }
+   audio_i2s_mp3.encoder_type = encoder_type;
+ 
++#ifdef USE_I2S_MP3
+   if (audio_i2s_mp3.preallocateCodec != nullptr){
+     AddLog(LOG_LEVEL_DEBUG,PSTR("I2S: free codec buffer"));
+     free(audio_i2s_mp3.preallocateCodec);
+     audio_i2s_mp3.preallocateCodec = nullptr;
+   }
++#endif // USE_I2S_MP3
+ 
+   if(!audio_i2s_mp3.use_stream){
+     strlcpy(audio_i2s_mp3.mic_path, path, sizeof(audio_i2s_mp3.mic_path));
