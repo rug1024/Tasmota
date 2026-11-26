@@ -1,0 +1,36 @@
+diff --git a/tasmota/tasmota_xdrv_driver/xdrv_42_0_i2s_audio_idf51.ino b/tasmota/tasmota_xdrv_driver/xdrv_42_0_i2s_audio_idf51.ino
+index 8fe9282..6aa4348 100644
+--- a/tasmota/tasmota_xdrv_driver/xdrv_42_0_i2s_audio_idf51.ino
++++ b/tasmota/tasmota_xdrv_driver/xdrv_42_0_i2s_audio_idf51.ino
+@@ -41,12 +41,14 @@
+ 
+ #define XDRV_42           42
+ 
++#ifndef USE_I2S_MIC_ONLY
+ #define USE_I2S_SAY
+ #define USE_I2S_SAY_TIME
+ #define USE_I2S_RTTTL
+ #define USE_I2S_WEBRADIO
+ #define USE_I2S_MP3
+ #define USE_I2S_DEBUG       // remove before flight
++#endif // USE_I2S_MIC_ONLY
+ 
+ // Macros used in audio sub-functions
+ #undef AUDIO_PWR_ON
+@@ -854,14 +856,14 @@ void mp3_delete(void) {
+   audio_i2s_mp3.decoder = nullptr;
+ }
+ 
++#endif // USE_I2S_MP3
++
+ void i2s_clean_pause_data(void) {
+   audio_i2s_mp3.current_file_type = MP3_DECODER;
+   audio_i2s_mp3.paused_position = 0;
+   audio_i2s_mp3.file_play_pausing = false;
+ }
+ 
+-#endif // USE_I2S_MP3
+-
+ /*********************************************************************************************\
+  * Commands
+ \*********************************************************************************************/
